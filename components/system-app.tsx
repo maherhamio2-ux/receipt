@@ -31,6 +31,11 @@ import {
   setupFirstAdmin,
 } from '@/lib/local-db';
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+};
+
 type Tab = 'home' | 'sent' | 'names' | 'reports' | 'settings';
 type DashboardData = {
   dailyTotal: number;
@@ -155,6 +160,9 @@ export default function SystemApp() {
   const [fatal, setFatal] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [toast, setToast] = useState<{ text: string; kind: 'ok' | 'error' } | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
 
   const notify = (text: string, kind: 'ok' | 'error' = 'ok') => {
     setToast({ text, kind });
@@ -177,6 +185,50 @@ export default function SystemApp() {
   }
 
   useEffect(() => { hydrate(); }, []);
+
+  useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
+    setIsInstalled(standalone);
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+    }
+
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    const onAppInstalled = () => {
+      setIsInstalled(true);
+      setInstallPrompt(null);
+      notify('تم تثبيت التطبيق بنجاح.');
+    };
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onAppInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onAppInstalled);
+    };
+  }, []);
+
+  async function installApp() {
+    if (isInstalled) {
+      notify('التطبيق مثبت بالفعل على هذا الجهاز.');
+      return;
+    }
+
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        setInstallPrompt(null);
+      }
+      return;
+    }
+
+    setShowInstallHelp(true);
+  }
 
   if (loading) return <Splash />;
   if (fatal) return <ErrorState message={fatal} onRetry={hydrate} />;
@@ -208,7 +260,7 @@ export default function SystemApp() {
         <nav>{tabs.map((item) => <NavButton key={item.key} active={tab === item.key} icon={item.icon} label={item.label} onClick={() => setTab(item.key)} />)}</nav>
         <div className="sidebar-foot">
           <div className="secure-mini"><Icon name="database"/><span>البيانات محفوظة في هذا المتصفح</span></div>
-          <small>الإصدار 3.0 Local First</small>
+          <small>الإصدار 3.1 Local First</small>
         </div>
       </aside>
 
@@ -216,6 +268,7 @@ export default function SystemApp() {
         <header className="topbar">
           <div className="date-side"><button className="round-icon muted"><Icon name="sun"/></button><span>{todayLong()}</span></div>
           <div className="top-user-area">
+            <button className={`round-icon install-button ${isInstalled ? 'installed' : ''}`} aria-label="تثبيت التطبيق" title={isInstalled ? 'التطبيق مثبت' : 'تثبيت التطبيق'} onClick={installApp}><Icon name="download"/></button>
             <button className="round-icon notify-button" aria-label="الإشعارات"><Icon name="bell"/><b>1</b></button>
             <div className="top-avatar">{profile.display_name.trim().slice(0, 1)}</div>
             <div className="top-user-text"><strong>{profile.display_name}</strong><span>{roleLabel(profile.role)}</span></div>
@@ -233,7 +286,31 @@ export default function SystemApp() {
       </main>
 
       <div className="mobile-nav">{tabs.map((item) => <NavButton key={item.key} active={tab === item.key} icon={item.icon} label={item.label} onClick={() => setTab(item.key)} />)}</div>
+      {showInstallHelp && <InstallHelp onClose={() => setShowInstallHelp(false)} />}
       {toast && <div className={`toast ${toast.kind}`}>{toast.text}</div>}
+    </div>
+  );
+}
+
+function InstallHelp({ onClose }: { onClose: () => void }) {
+  const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isSamsung = /SamsungBrowser/i.test(ua);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal install-help-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="install-help-icon"><Icon name="download"/></div>
+        <h3>تثبيت النظام كتطبيق</h3>
+        {isIOS ? (
+          <p>في Safari اضغط زر المشاركة، ثم اختر <b>إضافة إلى الشاشة الرئيسية</b>، وبعدها اضغط <b>إضافة</b>.</p>
+        ) : isSamsung ? (
+          <p>إذا لم تظهر نافذة التثبيت تلقائيًا، افتح قائمة متصفح Samsung Internet ثم اختر <b>إضافة الصفحة إلى</b> ← <b>الشاشة الرئيسية</b> أو <b>التطبيقات</b>.</p>
+        ) : (
+          <p>إذا لم تظهر نافذة التثبيت تلقائيًا، افتح قائمة المتصفح ثم اختر <b>تثبيت التطبيق</b> أو <b>إضافة إلى الشاشة الرئيسية</b>.</p>
+        )}
+        <div className="modal-actions"><button className="primary-button" onClick={onClose}>حسنًا</button></div>
+      </div>
     </div>
   );
 }
