@@ -20,3 +20,13 @@
 .local-users-list{margin:0 22px;border:1px solid #e3e9f0;border-radius:9px;overflow:hidden}.local-users-list>div{display:grid;grid-template-columns:35px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #edf1f5}.local-users-list>div:last-child{border-bottom:0}.user-list-avatar{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:#eaf3ff;color:#196dc3;font-weight:900}.local-users-list div>div{display:grid;gap:3px}.local-users-list b{font-size:11px}.local-users-list small{font-size:9px;color:#76869a}.local-users-list em{font-style:normal;background:#e8f8ef;color:#178451;border-radius:999px;padding:5px 8px;font-size:9px}
 @media(max-width:1100px){.local-user-form{grid-template-columns:1fr 1fr}.local-user-form .primary-button{grid-column:1/-1}.storage-status-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.storage-status-grid{grid-template-columns:1fr;margin:0 14px 14px}.backup-actions{margin:0 14px 14px;display:grid;grid-template-columns:1fr 1fr}.backup-actions button{width:100%}.local-warning{margin:0 14px}.local-user-form{grid-template-columns:1fr;margin:0 14px 14px}.local-user-form .primary-button{grid-column:auto}.local-users-list{margin:0 14px}.setup-card{padding:20px}}
+
+/* PWA install button */
+.install-button{background:#eef6ff;border-color:#d8e9ff;color:#087df0;transition:.18s;box-shadow:0 5px 14px rgba(20,132,255,.08)}
+.install-button:hover{transform:translateY(-1px);background:#e4f1ff;border-color:#bcdcff}
+.install-button.installed{background:#eaf8f0;border-color:#ccebd9;color:#12884f}
+.install-help-modal{max-width:430px;text-align:right}
+.install-help-icon{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:#eaf4ff;color:#087df0;margin-bottom:12px}
+.install-help-icon .ico{width:27px;height:27px}
+.install-help-modal p b{color:#173b66}
+@media(max-width:560px){.install-button{margin-inline-start:auto}.top-user-area{gap:8px}.top-user-area .notify-button{display:none}}
